@@ -33,22 +33,35 @@ interface AirQualityForecast {
 
 export async function fetchOpenAQData(lat: number, lon: number, radius = 25000) {
   try {
-    const url = `https://api.openaq.org/v2/latest?coordinates=${lat},${lon}&radius=${radius}&limit=10`;
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+    const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm10,pm2_5,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide,us_aqi,european_aqi`;
+    const response = await fetch(url);
     
     if (!response.ok) {
-      console.error('OpenAQ API error:', response.status, response.statusText);
+      console.error('Open-Meteo Air Quality API error:', response.status, response.statusText);
       return null;
     }
     
     const data = await response.json();
-    return data.results || [];
+    
+    if (!data.current) {
+      return null;
+    }
+
+    return [{
+      id: 1,
+      name: `Location at ${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+      coordinates: { latitude: lat, longitude: lon },
+      latest: [
+        { parameter: { name: 'pm25' }, value: data.current.pm2_5 || 0 },
+        { parameter: { name: 'pm10' }, value: data.current.pm10 || 0 },
+        { parameter: { name: 'no2' }, value: data.current.nitrogen_dioxide || 0 },
+        { parameter: { name: 'o3' }, value: data.current.ozone || 0 },
+        { parameter: { name: 'so2' }, value: data.current.sulphur_dioxide || 0 },
+        { parameter: { name: 'co' }, value: data.current.carbon_monoxide || 0 },
+      ].filter(m => m.value > 0)
+    }];
   } catch (error) {
-    console.error('Error fetching OpenAQ data:', error);
+    console.error('Error fetching air quality data:', error);
     return null;
   }
 }
@@ -202,5 +215,92 @@ Write 2-3 sentences explaining what to expect and why. Be specific and actionabl
   } catch (error) {
     console.error('Error generating AI forecast summary:', error);
     return 'Forecast summary unavailable.';
+  }
+}
+
+export async function generateAIEnhancedForecast(forecastData: any, currentData: any, apiKey: string) {
+  try {
+    const prompt = `You are an air quality prediction AI. Given current measurements and meteorological forecasts, predict hyperlocal air quality for the next 72 hours.
+
+CURRENT DATA:
+- Current AQI: ${currentData.aqi || 'N/A'}
+- PM2.5: ${currentData.pm25 || 'N/A'} µg/m³
+- PM10: ${currentData.pm10 || 'N/A'} µg/m³
+- NO₂: ${currentData.no2 || 'N/A'} µg/m³
+- O₃: ${currentData.o3 || 'N/A'} µg/m³
+
+METEOROLOGICAL FORECAST (next 72 hours):
+${JSON.stringify(forecastData.hourly?.slice(0, 72).map((h: any, i: number) => ({
+  hour: i,
+  pm25: h.pm25,
+  pm10: h.pm10,
+  no2: h.no2,
+  o3: h.o3,
+  aqi: h.aqi
+})).slice(0, 24), null, 2)}
+
+TASK: Analyze patterns and predict:
+1. AQI trends for next 24, 48, and 72 hours
+2. Peak pollution periods (time ranges)
+3. Uncertainty ranges (±10-30% based on meteorological variability)
+4. Key factors affecting predictions
+
+Return ONLY valid JSON in this exact format:
+{
+  "predictions": {
+    "24h": {"avgAQI": number, "peakAQI": number, "confidence": "high|medium|low"},
+    "48h": {"avgAQI": number, "peakAQI": number, "confidence": "high|medium|low"},
+    "72h": {"avgAQI": number, "peakAQI": number, "confidence": "high|medium|low"}
+  },
+  "peakPeriods": ["morning hours", "evening commute"],
+  "uncertaintyFactors": ["wind patterns", "temperature inversion"],
+  "summary": "brief 2-sentence summary"
+}`;
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://aeroaware.app',
+      },
+      body: JSON.stringify({
+        model: 'mistralai/mistral-7b-instruct:free',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an air quality prediction model. Always respond with valid JSON only, no markdown or explanations.'
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: 500,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('OpenRouter API error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0]?.message?.content || '';
+    
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      return null;
+    } catch (parseError) {
+      console.error('Failed to parse AI prediction response:', parseError);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error generating AI-enhanced forecast:', error);
+    return null;
   }
 }

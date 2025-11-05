@@ -14,12 +14,15 @@ export function Navigation() {
   ];
   
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-lg">
+    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-xl shadow-lg shadow-primary/5">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md cursor-pointer" onClick={() => window.location.href = "/"} data-testid="link-home">
-            <Wind className="h-6 w-6 text-primary" />
-            <span className="font-serif text-xl font-semibold">BreatheWise</span>
+          <div className="flex items-center gap-3 group px-3 py-2 rounded-lg cursor-pointer transition-all duration-300 hover:bg-primary/5" onClick={() => window.location.href = "/"} data-testid="link-home">
+            <div className="relative">
+              <Wind className="h-7 w-7 text-primary transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
+              <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </div>
+            <span className="font-['Space_Grotesk'] text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">AEROAWARE</span>
           </div>
           
           <div className="hidden md:flex items-center gap-1">

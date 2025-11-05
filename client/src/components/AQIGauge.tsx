@@ -12,9 +12,9 @@ export function AQIGauge({ aqi, standard = "WHO", size = "lg" }: AQIGaugeProps) 
   const info = getAQIInfo(aqi, standard);
   
   const sizes = {
-    sm: { width: 160, height: 160, strokeWidth: 12, fontSize: 32 },
-    md: { width: 240, height: 240, strokeWidth: 16, fontSize: 48 },
-    lg: { width: 300, height: 300, strokeWidth: 20, fontSize: 64 },
+    sm: { width: 120, height: 120, strokeWidth: 10, fontSize: 28 },
+    md: { width: 180, height: 180, strokeWidth: 14, fontSize: 42 },
+    lg: { width: 220, height: 220, strokeWidth: 16, fontSize: 52 },
   };
   
   const config = sizes[size];

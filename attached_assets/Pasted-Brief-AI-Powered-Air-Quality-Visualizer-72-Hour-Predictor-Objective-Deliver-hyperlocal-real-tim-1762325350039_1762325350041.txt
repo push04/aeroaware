@@ -1,0 +1,68 @@
+Brief: AI-Powered Air Quality Visualizer & 72-Hour Predictor
+Objective
+
+Deliver hyperlocal, real-time air quality for small towns and rural areas.
+
+Provide clear 24–72 hour predictions of AQI and key pollutants (PM2.5, PM10, NO₂, O₃), including uncertainty ranges.
+
+Show historical trends and interactive heatmaps.
+
+Give plain-language health recommendations aligned with WHO and Indian (CPCB) breakpoints.
+
+Optional: alerts when thresholds are exceeded and context on likely sources (fires, traffic, industrial zones).
+
+AI Prediction (must be “proper AI”)
+
+Use a small time-series prediction model (served through a free API) to produce location-specific forecasts for the next 24–72 hours.
+
+Inputs/Features: recent station readings (OpenAQ), weather forecasts (Open-Meteo), and satellite indicators (e.g., aerosol optical depth, fires).
+
+Approach: start from open forecasts (baseline) and calibrate/adjust them with the AI model to make them hyperlocal; refresh as new data arrives.
+
+Explanations: accompany forecasts with short AI-generated narratives (why it’s rising/falling, simple precautions).
+
+Free / Free-Tier APIs to Use
+
+Core data
+
+OpenAQ — real-time & historical pollutant measurements (no key).
+
+Open-Meteo Air Quality + Weather — pollutant and meteorology forecasts (no key).
+
+Open-Meteo Geocoding (or Nominatim/OSM) — place → coordinates (no key).
+
+Satellite/context layers
+
+NASA GIBS — aerosol optical depth and other atmospheric layers (tiles).
+
+NASA FIRMS — active fire data (for potential smoke impact).
+
+Optional enrichments (still free)
+
+Meteostat — historical weather context.
+
+WAQI — alternative/fallback station data (free token).
+
+Public endpoints from CPCB/IMD/ISRO when accessible.
+
+AI services
+
+Hugging Face Inference API (free tier) — host/call a lightweight time-series model to generate the actual numeric predictions and uncertainty.
+
+OpenRouter API (free models tier) — generate health advice, alerts text, and human-readable summaries of trends/forecasts.
+
+Hosting & Credentials
+
+Host on Netlify (serverless).
+
+All API credentials stored only as Netlify environment variables.
+
+All external API calls go through Netlify serverless functions (never from the browser) to keep keys private.
+
+Optional: schedule periodic refresh and threshold checks for push alerts using Netlify’s scheduled functions.
+
+Constraints
+
+Use only free APIs or free tiers.
+
+Keep the experience professional and accessible; design/implementation choices are up to Replit.

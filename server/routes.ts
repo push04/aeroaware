@@ -8,6 +8,7 @@ import {
   fetchNASAFIRMS,
   generateAIHealthAdvice,
   generateAIForecastSummary,
+  generateAIEnhancedForecast,
 } from "./lib/apiClients";
 import { insertUserLocationSchema, insertUserAlertSchema } from "@shared/schema";
 
@@ -30,6 +31,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/air-quality/realtime", async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    
     try {
       const { lat, lon } = req.query;
       if (!lat || !lon) {
@@ -55,30 +61,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const measurements: any = {};
-      data.forEach((location: any) => {
-        if (location.measurements) {
-          location.measurements.forEach((m: any) => {
-            const param = m.parameter.toLowerCase().replace('.', '');
-            if (!measurements[param]) {
-              measurements[param] = m.value;
+      let measurementCount = 0;
+      const seenParams = new Set<string>();
+      
+      data.forEach((location: any, locIdx: number) => {
+        if (location.latest && Array.isArray(location.latest)) {
+          location.latest.forEach((measurement: any, idx: number) => {
+            if (idx === 0 && locIdx === 0) {
+              console.log('[AQI Debug] First measurement structure:', JSON.stringify(measurement, null, 2));
+            }
+            const paramName = (measurement.parameter?.name || '').toLowerCase();
+            seenParams.add(paramName);
+            measurementCount++;
+            
+            if (paramName === 'pm25' || paramName === 'pm2_5' || paramName === 'pm2.5') {
+              if (!measurements.pm25 && measurement.value != null) {
+                measurements.pm25 = measurement.value;
+              }
+            } else if (paramName === 'pm10') {
+              if (!measurements.pm10 && measurement.value != null) {
+                measurements.pm10 = measurement.value;
+              }
+            } else if (paramName === 'no2') {
+              if (!measurements.no2 && measurement.value != null) {
+                measurements.no2 = measurement.value;
+              }
+            } else if (paramName === 'o3') {
+              if (!measurements.o3 && measurement.value != null) {
+                measurements.o3 = measurement.value;
+              }
+            } else if (paramName === 'so2') {
+              if (!measurements.so2 && measurement.value != null) {
+                measurements.so2 = measurement.value;
+              }
+            } else if (paramName === 'co') {
+              if (!measurements.co && measurement.value != null) {
+                measurements.co = measurement.value;
+              }
             }
           });
         }
       });
       
-      const pm25 = measurements.pm25 || measurements.pm2_5 || 35;
+      console.log(`[AQI Debug] Found ${measurementCount} measurements for ${latitude},${longitude}`);
+      console.log(`[AQI Debug] Parameter names seen:`, Array.from(seenParams));
+      console.log(`[AQI Debug] Extracted values:`, measurements);
+      
+      const pm25 = measurements.pm25 !== undefined ? measurements.pm25 : 35;
       const aqi = Math.round(pm25 * 2.5);
       
       res.json({
         aqi,
         pollutants: {
-          pm25: measurements.pm25 || measurements.pm2_5 || 35.6,
+          pm25: measurements.pm25 || 35.6,
           pm10: measurements.pm10 || 58.2,
           no2: measurements.no2 || 42.1,
           o3: measurements.o3 || 68.5,
         },
-        source: 'openaq',
-        location: data[0]?.location,
+        source: data.length > 0 ? 'openaq' : 'fallback',
+        location: data[0]?.name || 'Unknown',
       });
     } catch (error) {
       console.error('Real-time air quality error:', error);
@@ -87,6 +128,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/air-quality/forecast", async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    
     try {
       const { lat, lon } = req.query;
       if (!lat || !lon) {
@@ -180,6 +226,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('AI forecast summary error:', error);
       res.status(500).json({ error: 'Failed to generate AI summary' });
+    }
+  });
+
+  app.post("/api/ai/enhanced-forecast", async (req, res) => {
+    try {
+      const { forecastData, currentData } = req.body;
+      
+      if (!forecastData || !currentData) {
+        return res.status(400).json({ error: 'Forecast and current data required' });
+      }
+      
+      if (!OPENROUTER_API_KEY) {
+        return res.json({
+          error: 'AI predictions require OpenRouter API key to be configured.',
+        });
+      }
+      
+      const predictions = await generateAIEnhancedForecast(forecastData, currentData, OPENROUTER_API_KEY);
+      if (!predictions) {
+        return res.status(500).json({ error: 'Failed to generate AI predictions' });
+      }
+      
+      res.json(predictions);
+    } catch (error) {
+      console.error('AI enhanced forecast error:', error);
+      res.status(500).json({ error: 'Failed to generate AI predictions' });
     }
   });
 

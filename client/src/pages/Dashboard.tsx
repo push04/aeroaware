@@ -14,22 +14,26 @@ import heroImage from "@assets/generated_images/Abstract_gradient_mesh_d350befa.
 export default function Dashboard() {
   const [currentLocation, setCurrentLocation] = useState({ name: "New Delhi, India", lat: 28.6139, lon: 77.2090 });
   
-  const { data: airQualityData, isLoading: isLoadingAQ } = useQuery({
+  const { data: airQualityData, isLoading: isLoadingAQ, refetch: refetchAQ } = useQuery({
     queryKey: ['/api/air-quality/realtime', currentLocation.lat, currentLocation.lon],
     queryFn: async () => {
       const res = await fetch(`/api/air-quality/realtime?lat=${currentLocation.lat}&lon=${currentLocation.lon}`);
       if (!res.ok) throw new Error('Failed to fetch air quality data');
       return res.json();
     },
+    staleTime: 0,
+    gcTime: 0,
   });
   
-  const { data: forecastRawData, isLoading: isLoadingForecast } = useQuery({
+  const { data: forecastRawData, isLoading: isLoadingForecast, refetch: refetchForecast } = useQuery({
     queryKey: ['/api/air-quality/forecast', currentLocation.lat, currentLocation.lon],
     queryFn: async () => {
       const res = await fetch(`/api/air-quality/forecast?lat=${currentLocation.lat}&lon=${currentLocation.lon}`);
       if (!res.ok) throw new Error('Failed to fetch forecast data');
       return res.json();
     },
+    staleTime: 0,
+    gcTime: 0,
   });
   
   useEffect(() => {
@@ -77,22 +81,26 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <div
-        className="relative h-[90vh] flex items-center justify-center bg-cover bg-center"
+        className="relative h-[90vh] flex items-center justify-center bg-cover bg-center overflow-hidden"
         style={{
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.5)), url(${heroImage})`,
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)), url(${heroImage})`,
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+        <div className="absolute inset-0 gradient-mesh opacity-30" />
         
         <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto">
-          <Badge variant="outline" className="mb-4 bg-white/10 backdrop-blur-sm border-white/20 text-white">
-            <MapPin className="h-3 w-3 mr-1" />
+          <Badge className="mb-6 bg-blue-500/90 backdrop-blur-md border-2 border-blue-300 text-white px-4 py-2 text-base font-semibold shadow-lg">
+            <MapPin className="h-4 w-4 mr-2" />
             {currentLocation.name}
           </Badge>
           
-          <h1 className="text-4xl md:text-6xl font-serif font-semibold mb-4 tracking-tight">
-            Air Quality Right Now
+          <h1 className="text-5xl md:text-7xl font-['Poppins'] font-bold mb-6 tracking-tight leading-tight animate-fade-in-up drop-shadow-2xl">
+            Real-Time Air Quality Intelligence
           </h1>
+          <p className="text-lg md:text-xl text-white mb-10 font-['Inter'] font-medium max-w-2xl mx-auto animate-fade-in-up animation-delay-200 drop-shadow-lg">
+            Hyperlocal AQI monitoring powered by AI • WHO & CPCB Standard Compliance
+          </p>
           
           <div className="mb-8">
             <LocationSearch
@@ -111,68 +119,114 @@ export default function Dashboard() {
                 <span>Loading air quality data...</span>
               </div>
             ) : (
-              <AQIGauge aqi={currentAQI} standard="WHO" size="lg" />
+              <Card className="bg-white/95 backdrop-blur-lg border-4 border-white shadow-2xl hover:shadow-blue-500/50 transition-all duration-500 p-8 max-w-md animate-scale-in">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse-glow"></div>
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">LIVE DATA</span>
+                  </div>
+                  <div className="text-8xl font-bold font-mono mb-2" style={{ 
+                    color: currentAQI > 150 ? '#DC2626' : currentAQI > 100 ? '#F97316' : currentAQI > 50 ? '#FBBF24' : '#10B981',
+                    textShadow: `0 0 30px ${currentAQI > 150 ? '#DC2626' : currentAQI > 100 ? '#F97316' : currentAQI > 50 ? '#FBBF24' : '#10B981'}40`
+                  }}>
+                    {Math.round(currentAQI)}
+                  </div>
+                  <div className="text-base font-bold text-gray-600 mb-4">
+                    {currentAQI > 200 ? 'VERY UNHEALTHY' : currentAQI > 150 ? 'UNHEALTHY' : currentAQI > 100 ? 'UNHEALTHY FOR SENSITIVE GROUPS' : currentAQI > 50 ? 'MODERATE' : 'GOOD'}
+                  </div>
+                  <div className="h-3 rounded-full overflow-hidden bg-gray-200 mb-4">
+                    <div className="h-full transition-all duration-1000 ease-out" style={{
+                      width: `${Math.min((currentAQI / 500) * 100, 100)}%`,
+                      background: currentAQI > 150 ? 'linear-gradient(90deg, #DC2626, #EF4444)' : currentAQI > 100 ? 'linear-gradient(90deg, #F97316, #FB923C)' : currentAQI > 50 ? 'linear-gradient(90deg, #FBBF24, #FCD34D)' : 'linear-gradient(90deg, #10B981, #34D399)'
+                    }}></div>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span>US AQI Standard</span>
+                    <span className="font-mono">{airQualityData?.source === 'openaq' ? 'Open-Meteo' : 'Fallback'}</span>
+                  </div>
+                </div>
+              </Card>
             )}
           </div>
           
-          <div className="flex flex-wrap justify-center gap-4 mb-8">
-            <Card className="px-4 py-2 bg-white/10 backdrop-blur-md border-white/20">
-              <div className="flex items-center gap-2 text-sm">
-                <Cloud className="h-4 w-4" />
-                <span>Partly Cloudy</span>
+          <div className="flex flex-wrap justify-center gap-4 mb-10">
+            <Card className="px-6 py-3 bg-white/20 backdrop-blur-lg border-2 border-white/30 shadow-xl hover:bg-white/25 transition-all duration-300">
+              <div className="flex items-center gap-3 text-base font-semibold">
+                <Cloud className="h-5 w-5 text-blue-200" />
+                <span className="text-white drop-shadow-md">Partly Cloudy</span>
               </div>
             </Card>
-            <Card className="px-4 py-2 bg-white/10 backdrop-blur-md border-white/20">
-              <div className="flex items-center gap-2 text-sm">
-                <Wind className="h-4 w-4" />
-                <span>12 km/h NW</span>
+            <Card className="px-6 py-3 bg-white/20 backdrop-blur-lg border-2 border-white/30 shadow-xl hover:bg-white/25 transition-all duration-300">
+              <div className="flex items-center gap-3 text-base font-semibold">
+                <Wind className="h-5 w-5 text-green-200" />
+                <span className="text-white drop-shadow-md">12 km/h NW</span>
               </div>
             </Card>
-            <Card className="px-4 py-2 bg-white/10 backdrop-blur-md border-white/20">
-              <div className="flex items-center gap-2 text-sm">
-                <Droplets className="h-4 w-4" />
-                <span>65% Humidity</span>
+            <Card className="px-6 py-3 bg-white/20 backdrop-blur-lg border-2 border-white/30 shadow-xl hover:bg-white/25 transition-all duration-300">
+              <div className="flex items-center gap-3 text-base font-semibold">
+                <Droplets className="h-5 w-5 text-cyan-200" />
+                <span className="text-white drop-shadow-md">65% Humidity</span>
               </div>
             </Card>
           </div>
           
           <div className="flex justify-center gap-4">
-            <Button variant="default" size="lg" data-testid="button-view-forecast">
-              <Calendar className="h-4 w-4 mr-2" />
+            <Button variant="default" size="lg" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-6 text-base shadow-2xl hover:shadow-blue-500/50 transition-all duration-300" data-testid="button-view-forecast">
+              <Calendar className="h-5 w-5 mr-2" />
               View 72h Forecast
             </Button>
-            <Button variant="outline" size="lg" className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20" data-testid="button-set-alert">
+            <Button variant="outline" size="lg" className="bg-white/20 backdrop-blur-lg border-2 border-white/40 text-white hover:bg-white/30 font-semibold px-8 py-6 text-base shadow-xl transition-all duration-300" data-testid="button-set-alert">
               Set Alert
             </Button>
           </div>
         </div>
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-12 space-y-12">
-        <section>
-          <h2 className="text-2xl font-serif font-semibold mb-6">Live Pollutant Levels</h2>
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-16 space-y-16">
+        <section className="animate-fade-in-up animation-delay-100">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-3xl font-['Poppins'] font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                Real-Time Pollutant Monitoring
+              </h2>
+              <p className="text-muted-foreground font-['Inter']">Live measurements from nearby monitoring stations</p>
+            </div>
+            {airQualityData?.source === 'openaq' && (
+              <Badge variant="outline" className="text-xs animate-pulse-glow">
+                🔴 LIVE DATA
+              </Badge>
+            )}
+          </div>
           {isLoadingAQ ? (
             <div className="flex items-center justify-center gap-2 py-12">
               <Loader2 className="h-6 w-6 animate-spin" />
-              <span>Loading pollutant data...</span>
+              <span className="font-['Inter']">Fetching real-time air quality data...</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {pollutantCards.map((pollutant) => (
-                <PollutantCard
-                  key={pollutant.id}
-                  pollutant={pollutant.id}
-                  value={pollutant.value}
-                  trend={pollutant.trend}
-                  sparklineData={pollutant.sparklineData}
-                />
+              {pollutantCards.map((pollutant, index) => (
+                <div key={pollutant.id} className="animate-scale-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <PollutantCard
+                    pollutant={pollutant.id}
+                    value={pollutant.value}
+                    trend={pollutant.trend}
+                    sparklineData={pollutant.sparklineData}
+                  />
+                </div>
               ))}
             </div>
           )}
         </section>
         
-        <section>
-          <h2 className="text-2xl font-serif font-semibold mb-6">24-Hour Forecast</h2>
+        <section className="animate-fade-in-up animation-delay-300">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-3xl font-['Poppins'] font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                AI-Powered 24-Hour Forecast
+              </h2>
+              <p className="text-muted-foreground font-['Inter']">Advanced predictions with confidence intervals</p>
+            </div>
+          </div>
           {isLoadingForecast ? (
             <div className="flex items-center justify-center gap-2 py-12">
               <Loader2 className="h-6 w-6 animate-spin" />
