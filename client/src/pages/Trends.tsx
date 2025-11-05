@@ -1,91 +1,124 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DataExport } from "@/components/DataExport";
+import { ChartSkeleton } from "@/components/LoadingSkeleton";
+import { ErrorState } from "@/components/ErrorState";
 import { useState } from "react";
-import { Download, Calendar, TrendingUp } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Download, Calendar, TrendingUp, BarChart3 } from "lucide-react";
 
 export default function Trends() {
   const [timeRange, setTimeRange] = useState<7 | 30 | 90>(7);
+  const [currentLocation] = useState({ name: "New Delhi, India", lat: 28.6139, lon: 77.2090 });
   
-  const generateTrendData = (days: number) => 
-    Array.from({ length: days }, (_, i) => ({
-      date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      aqi: 80 + Math.sin(i / 7) * 40 + Math.random() * 20,
-      pm25: 35 + Math.sin(i / 5) * 20 + Math.random() * 10,
-    }));
+  const { data: forecastData, isLoading, refetch } = useQuery({
+    queryKey: ['/api/air-quality/forecast', currentLocation.lat, currentLocation.lon],
+    queryFn: async () => {
+      const res = await fetch(`/api/air-quality/forecast?lat=${currentLocation.lat}&lon=${currentLocation.lon}`);
+      if (!res.ok) throw new Error('Failed to fetch forecast data');
+      return res.json();
+    },
+    staleTime: 0,
+  });
   
-  const data = generateTrendData(timeRange);
-  const maxAQI = Math.max(...data.map(d => d.aqi));
-  const avgAQI = data.reduce((sum, d) => sum + d.aqi, 0) / data.length;
+  const data = forecastData?.hourly?.slice(0, timeRange * 24).map((item: any, i: number) => ({
+    date: new Date(item.time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    aqi: item.aqi ?? (item.pm25 * 2.5),
+    pm25: item.pm25 || 0,
+  })) || [];
+  
+  const maxAQI = data.length > 0 ? Math.max(...data.map(d => d.aqi)) : 0;
+  const minAQI = data.length > 0 ? Math.min(...data.map(d => d.aqi)) : 0;
+  const avgAQI = data.length > 0 ? data.reduce((sum, d) => sum + d.aqi, 0) / data.length : 0;
+  const stdDev = data.length > 0 ? Math.sqrt(data.reduce((sum, d) => sum + Math.pow(d.aqi - avgAQI, 2), 0) / data.length) : 0;
   
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-12 space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-serif font-semibold mb-2">Historical Trends</h1>
+            <h1 className="text-4xl font-bold mb-2">Historical Trends</h1>
             <p className="text-muted-foreground">
-              Track air quality patterns over time
+              Statistical analysis of air quality patterns over time
             </p>
           </div>
-          <Button variant="outline" data-testid="button-export-data">
-            <Download className="h-4 w-4 mr-2" />
-            Export Data
-          </Button>
+          <DataExport 
+            data={data}
+            filename="aeroaware_trends"
+            type="trends"
+          />
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="p-6">
-            <div className="text-sm text-muted-foreground mb-1">Average AQI</div>
-            <div className="text-3xl font-bold font-mono">{avgAQI.toFixed(0)}</div>
-            <div className="text-xs text-muted-foreground mt-1">Last {timeRange} days</div>
+            <div className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Average AQI
+            </div>
+            <div className="text-3xl font-bold font-mono">{avgAQI.toFixed(1)}</div>
+            <div className="text-xs text-muted-foreground mt-1">Mean value over {timeRange} days</div>
           </Card>
           <Card className="p-6">
-            <div className="text-sm text-muted-foreground mb-1">Peak AQI</div>
-            <div className="text-3xl font-bold font-mono">{maxAQI.toFixed(0)}</div>
-            <div className="text-xs text-muted-foreground mt-1">Highest recorded</div>
+            <div className="text-sm text-muted-foreground mb-1">Std. Deviation</div>
+            <div className="text-3xl font-bold font-mono">{stdDev.toFixed(1)}</div>
+            <div className="text-xs text-muted-foreground mt-1">Variability measure</div>
+          </Card>
+          <Card className="p-6">
+            <div className="text-sm text-muted-foreground mb-1">Range</div>
+            <div className="text-3xl font-bold font-mono">{minAQI.toFixed(0)}-{maxAQI.toFixed(0)}</div>
+            <div className="text-xs text-muted-foreground mt-1">Min to Max AQI</div>
           </Card>
           <Card className="p-6">
             <div className="text-sm text-muted-foreground mb-1">Good Days</div>
             <div className="text-3xl font-bold font-mono">
               {data.filter(d => d.aqi <= 50).length}
             </div>
-            <div className="text-xs text-muted-foreground mt-1">AQI ≤ 50</div>
+            <div className="text-xs text-muted-foreground mt-1">{((data.filter(d => d.aqi <= 50).length / data.length) * 100).toFixed(0)}% of period</div>
           </Card>
         </div>
         
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold">AQI Over Time</h3>
-            <div className="flex gap-2">
-              <Button
-                variant={timeRange === 7 ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTimeRange(7)}
-                data-testid="button-range-7d"
-              >
-                7 Days
-              </Button>
-              <Button
-                variant={timeRange === 30 ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTimeRange(30)}
-                data-testid="button-range-30d"
-              >
-                30 Days
-              </Button>
-              <Button
-                variant={timeRange === 90 ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTimeRange(90)}
-                data-testid="button-range-90d"
-              >
-                90 Days
-              </Button>
+        {isLoading ? (
+          <ChartSkeleton />
+        ) : data.length === 0 ? (
+          <ErrorState 
+            title="No Data Available"
+            message="Unable to load trend data for this location."
+            onRetry={refetch}
+          />
+        ) : (
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold">AQI Over Time</h3>
+              <div className="flex gap-2">
+                <Button
+                  variant={timeRange === 7 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTimeRange(7)}
+                  data-testid="button-range-7d"
+                >
+                  7 Days
+                </Button>
+                <Button
+                  variant={timeRange === 30 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTimeRange(30)}
+                  data-testid="button-range-30d"
+                >
+                  30 Days
+                </Button>
+                <Button
+                  variant={timeRange === 90 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTimeRange(90)}
+                  data-testid="button-range-90d"
+                >
+                  90 Days
+                </Button>
+              </div>
             </div>
-          </div>
-          
-          <div className="h-[400px] relative">
+            
+            <div className="h-[400px] relative">
             <svg width="100%" height="100%" className="overflow-visible">
               <defs>
                 <linearGradient id="trend-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -143,7 +176,8 @@ export default function Trends() {
               ))}
             </div>
           </div>
-        </Card>
+          </Card>
+        )}
         
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">Key Insights</h3>

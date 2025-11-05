@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navigation } from "@/components/Navigation";
+import { useKeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import Dashboard from "@/pages/Dashboard";
 import Forecast from "@/pages/Forecast";
 import Trends from "@/pages/Trends";
@@ -26,6 +27,8 @@ function Router() {
 }
 
 function App() {
+  useKeyboardShortcuts();
+  
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

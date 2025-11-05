@@ -98,11 +98,9 @@ export function ForecastChart({ data, pollutant, title }: ForecastChartProps) {
   };
 
   const aqiThresholds = [
-    { value: 50, label: 'Good', color: '#00e400' },
-    { value: 100, label: 'Moderate', color: '#ffff00' },
-    { value: 200, label: 'Unhealthy for Sensitive', color: '#ff7e00' },
-    { value: 300, label: 'Unhealthy', color: '#ff0000' },
-    { value: 400, label: 'Very Unhealthy', color: '#8f3f97' },
+    { value: 50, label: 'Good', color: 'hsl(var(--accent))' },
+    { value: 100, label: 'Moderate', color: 'hsl(var(--muted-foreground))' },
+    { value: 200, label: 'Unhealthy', color: 'hsl(var(--secondary))' },
   ];
   
   return (
