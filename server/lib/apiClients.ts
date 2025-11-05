@@ -171,7 +171,23 @@ Provide 2-3 practical recommendations in 2-3 sentences. Focus on what people sho
     }
 
     const data = await response.json();
-    return data.choices[0]?.message?.content || 'Unable to generate AI advice.';
+    const rawContent = data.choices[0]?.message?.content || 'Unable to generate AI advice.';
+    
+    // Clean up AI response - remove HTML tags, special markers, and format nicely
+    let cleanContent = rawContent
+      .replace(/<\/?s>/g, '') // Remove <s> tags
+      .replace(/\[OUT\]/g, '') // Remove [OUT] markers
+      .replace(/\[INST\]/g, '') // Remove [INST] markers
+      .replace(/<\/?[^>]+(>|$)/g, '') // Remove any other HTML tags
+      .replace(/^\s*[-*•]\s*/gm, '') // Remove list markers
+      .trim();
+    
+    // If response is too short or seems malformed, use fallback
+    if (cleanContent.length < 20 || cleanContent.includes('undefined')) {
+      return `Based on current AQI of ${aqi} (${aqi > 200 ? 'Poor' : aqi > 100 ? 'Moderate' : 'Satisfactory'}), people with lung disease, children, and elderly should ${aqi > 200 ? 'avoid' : 'limit'} outdoor activities. ${aqi > 100 ? 'Consider wearing N95 masks if going outside.' : 'General public can maintain normal activities with caution.'}`;
+    }
+    
+    return cleanContent;
   } catch (error) {
     console.error('Error generating AI health advice:', error);
     return 'Unable to generate AI advice at this time.';
