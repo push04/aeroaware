@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import Forecast from "@/pages/Forecast";
 import Trends from "@/pages/Trends";
 import Health from "@/pages/Health";
+import Compare from "@/pages/Compare";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/forecast" component={Forecast} />
       <Route path="/trends" component={Trends} />
       <Route path="/health" component={Health} />
+      <Route path="/compare" component={Compare} />
       <Route component={NotFound} />
     </Switch>
   );

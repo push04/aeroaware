@@ -52,13 +52,14 @@ export async function fetchOpenAQData(lat: number, lon: number, radius = 25000) 
       name: `Location at ${lat.toFixed(4)}, ${lon.toFixed(4)}`,
       coordinates: { latitude: lat, longitude: lon },
       latest: [
-        { parameter: { name: 'pm25' }, value: data.current.pm2_5 || 0 },
-        { parameter: { name: 'pm10' }, value: data.current.pm10 || 0 },
-        { parameter: { name: 'no2' }, value: data.current.nitrogen_dioxide || 0 },
-        { parameter: { name: 'o3' }, value: data.current.ozone || 0 },
-        { parameter: { name: 'so2' }, value: data.current.sulphur_dioxide || 0 },
-        { parameter: { name: 'co' }, value: data.current.carbon_monoxide || 0 },
-      ].filter(m => m.value > 0)
+        { parameter: { name: 'pm25' }, value: data.current.pm2_5 ?? null },
+        { parameter: { name: 'pm10' }, value: data.current.pm10 ?? null },
+        { parameter: { name: 'no2' }, value: data.current.nitrogen_dioxide ?? null },
+        { parameter: { name: 'o3' }, value: data.current.ozone ?? null },
+        { parameter: { name: 'so2' }, value: data.current.sulphur_dioxide ?? null },
+        { parameter: { name: 'co' }, value: data.current.carbon_monoxide ?? null },
+        { parameter: { name: 'us_aqi' }, value: data.current.us_aqi ?? null },
+      ].filter(m => m.value !== null)
     }];
   } catch (error) {
     console.error('Error fetching air quality data:', error);

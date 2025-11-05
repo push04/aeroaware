@@ -1,0 +1,85 @@
+Data correctness & API reliability
+
+“Fix the stuck AQI (85/88) bug so each location shows distinct, live values from real APIs (no caching/stale state).”
+
+“No mock data anywhere—only live responses from OpenAQ, Open-Meteo, NASA layers, and optional WAQI; show a clear empty-state if a provider is down.”
+
+“Add a source attribution badge (OpenAQ / Open-Meteo / NASA) near each widget so users know which API powered the value.”
+
+“Implement health of APIs banner (green/amber/red) reflecting last successful fetch and latency.”
+
+AI prediction & weekly report
+
+“Fuse OpenAQ + Open-Meteo + NASA (AOD/fires) via AI ensemble to produce final hyperlocal AQI & pollutant forecasts with confidence bands.”
+
+“Generate a 7-day detailed AI report (AQI, PM2.5/PM10/NO₂/O₃) with daily summaries and actionable health guidance (WHO/CPCB).”
+
+“Use chunked AI I/O: send features in chunks to the model and stream stitched results + explanations back to the UI.”
+
+“Show model diagnostics (MAE/MAPE, residual plot) so users see forecast quality over time.”
+
+Search & location (fix critical search issue)
+
+“Replace/augment search with place → lat/lon geocoding (Open-Meteo Geocoding or Nominatim), with debounced suggestions and keyboard navigation.”
+
+“Ensure search actually switches location: on select, refresh all panels/graphs/forecast and update URL state (shareable).”
+
+“Add recent searches & saved places for one-tap recall.”
+
+Forecast freshness
+
+“Fix forecast not changing: tie forecast queries strictly to current lat/lon + timezone; bust caches and visibly show last updated time.”
+
+“Add location compare (current vs another town) to prove values differ and updates work.”
+
+UI/UX polish (professional, distinct, not a generic weather site)
+
+“Rename everywhere to AeroAware with professional copy and concise micro-copy for each card.”
+
+“Redesign the homepage dashboard: clear hero (location + AQI gauge), key pollutant cards, mini-forecast strip, and map preview—no component clipping.”
+
+“Make API output circle smaller or switch to a compact gauge so top components never get cut.”
+
+“Adopt a vibrant yet professional theme (consistent colors, spacing, shadows, overlays) with tasteful micro-animations on load/hover.”
+
+“Improve legibility hierarchy: larger headline values, readable units, secondary labels, and accessible color contrast.”
+
+“Add a prominent search bar in the header and a ‘Detect location’ button.”
+
+Graphs & maps (make data truly visible)
+
+“Use interactive charts (hover tooltips, series toggles, zoom/pan, download PNG/CSV) so data is clearly visible.”
+
+“Display forecast bands (p50 ± p90) and annotate events (fires, dust) when AI detects anomalies.”
+
+“Add a heatmap + station pins with a legend and layer toggles (AQI heatmap / AOD / fires).”
+
+“Show unit switches (µg/m³ vs AQI) and WHO/CPCB breakpoint toggles.”
+
+Mobile excellence
+
+“Make mobile-first: responsive cards, stacked layout, big tap targets, sticky search/action bar, and buttery scroll performance.”
+
+“Optimize skeleton loaders and perceived speed for slow networks.”
+
+Performance & reliability
+
+“Add retry + backoff and graceful fallbacks per provider, with inline error states (not console-only).”
+
+“Show a status toast when data refresh completes or fails.”
+
+“Prevent stale UI: invalidate caches on location change and periodic refresh.”
+
+Alerts & advanced analytics
+
+“Enable threshold alerts (e.g., AQI ≥ ‘Poor’, PM2.5 > N) with optional push; summarize last 7 days of alerts.”
+
+“Add advanced analytics: pollutant contribution chart, trend slope, daily exposure score, and top 5 worst hours this week.”
+
+“Include an ‘AI Insight’ chip on charts that explains spikes/dips in plain language.”
+
+Content & branding quality
+
+“Audit all text for professional tone; tighten headings, remove filler, add brief health recommendations per category.”
+
+“Add onboarding hints (3 short tooltips) the first time a user lands.”

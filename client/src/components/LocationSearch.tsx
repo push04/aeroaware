@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, MapPin, Loader2 } from "lucide-react";
+import { Search, MapPin, Loader2, Star, Clock, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,12 +28,72 @@ interface LocationResult {
   country: string;
 }
 
+interface SavedLocation {
+  name: string;
+  lat: number;
+  lon: number;
+  timestamp?: number;
+}
+
+const RECENT_LOCATIONS_KEY = "aeroaware_recent_locations";
+const SAVED_LOCATIONS_KEY = "aeroaware_saved_locations";
+const MAX_RECENT = 5;
+
 export function LocationSearch({ onLocationSelect, currentLocation }: LocationSearchProps) {
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<LocationResult[]>([]);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
+  const [recentLocations, setRecentLocations] = useState<SavedLocation[]>([]);
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SAVED_LOCATIONS_KEY);
+      const recent = localStorage.getItem(RECENT_LOCATIONS_KEY);
+      if (saved) setSavedLocations(JSON.parse(saved));
+      if (recent) setRecentLocations(JSON.parse(recent));
+    } catch (error) {
+      console.error('Failed to load saved locations:', error);
+      localStorage.removeItem(SAVED_LOCATIONS_KEY);
+      localStorage.removeItem(RECENT_LOCATIONS_KEY);
+    }
+  }, []);
+
+  const saveRecentLocation = (location: SavedLocation) => {
+    try {
+      const updated = [
+        location,
+        ...recentLocations.filter(loc => loc.name !== location.name)
+      ].slice(0, MAX_RECENT);
+      setRecentLocations(updated);
+      localStorage.setItem(RECENT_LOCATIONS_KEY, JSON.stringify(updated));
+    } catch (error) {
+      console.error('Failed to save recent location:', error);
+    }
+  };
+
+  const toggleSavedLocation = (location: SavedLocation) => {
+    try {
+      const isAlreadySaved = savedLocations.some(loc => loc.name === location.name);
+      const updated = isAlreadySaved
+        ? savedLocations.filter(loc => loc.name !== location.name)
+        : [...savedLocations, location];
+      setSavedLocations(updated);
+      localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(updated));
+    } catch (error) {
+      console.error('Failed to toggle saved location:', error);
+    }
+  };
+
+  const clearRecentLocations = () => {
+    setRecentLocations([]);
+    localStorage.removeItem(RECENT_LOCATIONS_KEY);
+  };
+
+  const isSaved = (locationName: string) => 
+    savedLocations.some(loc => loc.name === locationName);
 
   useEffect(() => {
     const searchLocations = async () => {
@@ -116,38 +176,132 @@ export function LocationSearch({ onLocationSelect, currentLocation }: LocationSe
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>Searching locations...</span>
                 </div>
-              ) : searchResults.length === 0 && searchQuery.length >= 2 ? (
-                <CommandEmpty>No locations found. Try a different search.</CommandEmpty>
-              ) : searchResults.length === 0 ? (
-                <div className="py-6 text-center text-sm text-muted-foreground">
-                  Type at least 2 characters to search
-                </div>
+              ) : searchQuery.length >= 2 ? (
+                searchResults.length === 0 ? (
+                  <CommandEmpty>No locations found. Try a different search.</CommandEmpty>
+                ) : (
+                  <CommandGroup heading="Search Results">
+                    {searchResults.map((location) => {
+                      const fullName = `${location.name}, ${location.country}`;
+                      return (
+                        <CommandItem
+                          key={`${location.latitude}-${location.longitude}`}
+                          value={location.name}
+                          onSelect={() => {
+                            const selectedLoc = {
+                              name: fullName,
+                              lat: location.latitude,
+                              lon: location.longitude,
+                            };
+                            saveRecentLocation(selectedLoc);
+                            onLocationSelect(selectedLoc);
+                            setOpen(false);
+                            setSearchQuery("");
+                          }}
+                          data-testid={`item-location-${location.name.replace(/[^a-zA-Z]/g, '-')}`}
+                          className="hover:bg-blue-50 cursor-pointer py-3"
+                        >
+                          <MapPin className="mr-3 h-4 w-4 text-blue-600" />
+                          <div className="flex flex-col flex-1">
+                            <span className="text-gray-800 font-medium">{location.name}</span>
+                            <span className="text-xs text-gray-500">{location.country}</span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSavedLocation({
+                                name: fullName,
+                                lat: location.latitude,
+                                lon: location.longitude,
+                              });
+                            }}
+                            className="p-1 hover:bg-blue-100 rounded"
+                          >
+                            <Star className={`h-4 w-4 ${isSaved(fullName) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} />
+                          </button>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                )
               ) : (
-                <CommandGroup heading="Search Results">
-                  {searchResults.map((location) => (
-                    <CommandItem
-                      key={`${location.latitude}-${location.longitude}`}
-                      value={location.name}
-                      onSelect={() => {
-                        onLocationSelect({
-                          name: `${location.name}, ${location.country}`,
-                          lat: location.latitude,
-                          lon: location.longitude,
-                        });
-                        setOpen(false);
-                        setSearchQuery("");
-                      }}
-                      data-testid={`item-location-${location.name.replace(/[^a-zA-Z]/g, '-')}`}
-                      className="hover:bg-blue-50 cursor-pointer py-3"
-                    >
-                      <MapPin className="mr-3 h-4 w-4 text-blue-600" />
-                      <div className="flex flex-col">
-                        <span className="text-gray-800 font-medium">{location.name}</span>
-                        <span className="text-xs text-gray-500">{location.country}</span>
+                <>
+                  {savedLocations.length > 0 && (
+                    <CommandGroup heading="Saved Places">
+                      {savedLocations.map((location) => (
+                        <CommandItem
+                          key={location.name}
+                          value={location.name}
+                          onSelect={() => {
+                            saveRecentLocation(location);
+                            onLocationSelect(location);
+                            setOpen(false);
+                          }}
+                          className="hover:bg-blue-50 cursor-pointer py-3"
+                        >
+                          <Star className="mr-3 h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-gray-800 font-medium flex-1">{location.name}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSavedLocation(location);
+                            }}
+                            className="p-1 hover:bg-red-100 rounded"
+                            title="Remove from saved"
+                          >
+                            <X className="h-3.5 w-3.5 text-red-500" />
+                          </button>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                  {recentLocations.length > 0 && (
+                    <CommandGroup heading={
+                      <div className="flex items-center justify-between">
+                        <span>Recent Searches</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearRecentLocations();
+                          }}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-normal"
+                        >
+                          Clear all
+                        </button>
                       </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
+                    }>
+                      {recentLocations.map((location) => (
+                        <CommandItem
+                          key={location.name}
+                          value={location.name}
+                          onSelect={() => {
+                            saveRecentLocation(location);
+                            onLocationSelect(location);
+                            setOpen(false);
+                          }}
+                          className="hover:bg-blue-50 cursor-pointer py-3"
+                        >
+                          <Clock className="mr-3 h-4 w-4 text-gray-400" />
+                          <span className="text-gray-800 font-medium flex-1">{location.name}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSavedLocation(location);
+                            }}
+                            className="p-1 hover:bg-blue-100 rounded"
+                          >
+                            <Star className={`h-4 w-4 ${isSaved(location.name) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} />
+                          </button>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                  {savedLocations.length === 0 && recentLocations.length === 0 && (
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      Type at least 2 characters to search
+                    </div>
+                  )}
+                </>
               )}
             </CommandList>
           </Command>

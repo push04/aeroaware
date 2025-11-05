@@ -1,0 +1,39 @@
+“Fix stuck AQI (85/88) so each location shows distinct live values from OpenAQ/Open-Meteo/NASA—no caching or mock data.”
+
+“Ensure forecast changes with location/time; show Last updated and bust stale caches.”
+
+“Make search actually switch location using geocoding; add debounced suggestions, recent & saved places.”
+
+“Rename everywhere to AeroAware and rewrite copy to be professional and concise.”
+
+“Add a prominent search bar and make key data larger, clearer, more vibrant.”
+
+“Replace oversized ‘API output circle’ with a compact gauge; no component clipping.”
+
+“Create an AI ensemble that fuses OpenAQ + Open-Meteo + NASA (AOD/fires) into final hyperlocal forecasts with confidence bands.”
+
+“Generate a 7-day AI report (AQI, PM2.5/PM10/NO₂/O₃) via chunked AI I/O with short, plain-language insights.”
+
+“Add source badges (OpenAQ/Open-Meteo/NASA) and an API health indicator (green/amber/red).”
+
+“Redesign the homepage dashboard: clean hero (location + gauge), pollutant cards, mini-forecast, and heatmap preview.”
+
+“Make graphs interactive (hover tooltips, toggle series, zoom/pan, CSV/PNG export) and always bind real data.”
+
+“Adopt a professional theme with consistent colors, shadows, overlays, and subtle animations/micro-interactions.”
+
+“Deliver mobile-first layouts: big tap targets, sticky actions, smooth scrolling, fast skeleton loaders.”
+
+“Add alerts for thresholds (e.g., AQI ≥ ‘Poor’) and summarize alert history.”
+
+“Include advanced analytics: trend slope, pollutant contribution, worst hours, exposure score.”
+
+“Show status toasts for refresh/failures; implement retry + backoff and graceful empty states.”
+
+“Verify every API works on Netlify; route calls via serverless and remove any placeholder data.”
+
+“Publish a /docs/env page listing Netlify vars: OPENROUTER_API_KEY, OPENROUTER_MODEL, PUBLIC_BASE_URL, SITE_TITLE, WAQI_TOKEN, plus push keys if used.”
+
+“Eliminate console errors; ensure every page/function/utility loads, updates, and navigates cleanly.”
+
+“Add compare locations view to prove differing live/forecast values.”

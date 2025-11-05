@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "@/components/ui/button";
-import { Home, TrendingUp, LineChart, Heart, Bell, Wind } from "lucide-react";
+import { Home, TrendingUp, LineChart, Heart, Bell, Wind, GitCompare } from "lucide-react";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -9,7 +9,7 @@ export function Navigation() {
   const navItems = [
     { path: "/", label: "Dashboard", icon: Home },
     { path: "/forecast", label: "Forecast", icon: TrendingUp },
-    { path: "/trends", label: "Trends", icon: LineChart },
+    { path: "/compare", label: "Compare", icon: GitCompare },
     { path: "/health", label: "Health", icon: Heart },
   ];
   
