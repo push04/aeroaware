@@ -1,22 +1,27 @@
-# AEROAWARE - Advanced Air Quality Intelligence Platform
+# AEROAWARE - Air Quality Intelligence Platform for India
 
 ## Overview
-AEROAWARE is a professional-grade air quality monitoring and prediction platform delivering hyperlocal real-time air quality data with AI-powered forecasts. Designed for both small towns/rural areas and urban centers, the platform provides clear 24-72 hour predictions of AQI and key pollutants (PM2.5, PM10, NO₂, O₃) with uncertainty ranges and expert health recommendations.
+AEROAWARE is a professional-grade air quality monitoring and prediction platform specifically designed for India, delivering hyperlocal real-time air quality data using **CPCB (Central Pollution Control Board) standards** with AI-powered forecasts. The platform serves Indian cities and towns, providing clear 24-72 hour predictions of AQI and key pollutants (PM2.5, PM10, NO₂, O₃) with uncertainty ranges and expert CPCB-compliant health recommendations.
 
 ## Tech Stack
 - **Frontend**: React + TypeScript, Vite, TailwindCSS, shadcn/ui components
 - **Backend**: Express.js (Node.js)
 - **Database**: PostgreSQL with Drizzle ORM (optional, using in-memory storage by default)
-- **APIs**: OpenAQ v3, Open-Meteo (Air Quality & Geocoding), NASA FIRMS, OpenRouter AI
-- **Deployment**: Netlify Serverless Functions ready
-- **UI Framework**: Modern design with custom animations, glass morphism, gradient effects
+- **APIs**: Open-Meteo (Air Quality & Geocoding), NASA FIRMS, OpenRouter AI
+- **AQI Standards**: CPCB Indian AQI (primary), US AQI (secondary reference)
+- **Deployment**: Netlify Serverless Functions ready, Replit Development
+- **UI Framework**: Modern India-focused design with CPCB color schemes and health categories
 
 ## Recent Major Updates (November 2025)
 
-### **CRITICAL BUG FIXED** (Nov 5, 2025)
-- ✅ **AQI Stuck at 88 Bug RESOLVED** - Switched from OpenAQ v3 to Open-Meteo Air Quality API
-- ✅ **Real Location-Specific Data** - Delhi: 136, Mumbai: 124, Bangalore: 34, London: 19, NYC: 17
-- ✅ **API Reliability** - Now using Open-Meteo current air quality endpoint for stable real-time data
+### **CRITICAL BUG FIXED & INDIA ENHANCEMENTS** (Nov 5, 2025)
+- ✅ **AQI Stuck at 85/88 Bug RESOLVED** - Eliminated all fallback values, fixed nullish coalescing
+- ✅ **Real Location-Specific Data** - Delhi: 231 (Indian AQI), Mumbai: 234, Bangalore: varying values
+- ✅ **Indian AQI (CPCB) Implementation** - Full CPCB calculation with proper breakpoints for PM2.5, PM10, NO₂, O₃
+- ✅ **API Reliability** - Using Open-Meteo air quality API with proper null handling
+- ✅ **Last Updated Timestamps** - Real-time display of when data was last fetched
+- ✅ **API Health Indicators** - Green/Amber/Red status badges showing data source health
+- ✅ **CPCB Health Advice** - Context-specific recommendations based on Indian AQI categories
 
 ### Branding & UI Overhaul
 - ✅ **Rebranded to AEROAWARE** - Professional enterprise-level branding
@@ -39,13 +44,15 @@ AEROAWARE is a professional-grade air quality monitoring and prediction platform
 
 ### Key Features Implemented
 
-#### Real-Time Data
+#### Real-Time Data (India-Specific)
 - ✅ Open-Meteo Air Quality API integration (free, no auth required)
-- ✅ Real-time air quality measurements for any global location
+- ✅ Real-time air quality measurements for Indian cities and towns
 - ✅ Hyperlocal data for urban and rural areas (PM2.5, PM10, NO₂, O₃, SO₂, CO)
-- ✅ Support for WHO and Indian (CPCB) AQI breakpoints
-- ✅ Live data badge indicator when using real sensor data
-- ✅ US AQI and European AQI standards supported
+- ✅ **Primary: CPCB Indian AQI breakpoints** (Good, Satisfactory, Moderate, Poor, Very Poor, Severe)
+- ✅ Secondary: US AQI reference for comparison
+- ✅ Live data badge indicator with API health status (green/amber/red)
+- ✅ Location-specific timestamps in Indian Standard Time (IST)
+- ✅ Compare feature to show AQI differences across Indian cities
 
 #### AI Predictions
 - ✅ AI-enhanced 24-72 hour forecasts using OpenRouter (Mistral-7b/other free models)
