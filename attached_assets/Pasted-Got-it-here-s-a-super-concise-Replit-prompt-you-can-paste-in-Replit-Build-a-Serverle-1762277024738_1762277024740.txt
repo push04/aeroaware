@@ -1,0 +1,49 @@
+Got it — here’s a super-concise Replit prompt you can paste in:
+
+---
+
+# Replit: Build a Serverless Air-Quality App (Netlify, Free APIs, OpenRouter)
+
+**Goal:** Professional, beautiful, responsive web app for hyperlocal AQI—real-time, trends, and 24–72h forecasts—focused on underserved regions.
+**Hosting:** Netlify (serverless). **Secrets:** Netlify env vars only. **APIs:** free or free tier only. **AI:** OpenRouter.
+
+## Stack
+
+* React + Vite + TypeScript, Tailwind + shadcn/ui, TanStack Query, Zustand.
+* Charts: Apache ECharts (line/area/bar/gauge/heatmap).
+* Maps: MapLibre GL + OSM tiles (free provider).
+* PWA, Lighthouse ≥ 90, a11y, dark/light themes.
+
+## Pages & UX
+
+* **Home/Map:** geolocate → nearest AQI, gauge + pollutant cards, heatmap; layer toggles (stations / satellite AOD / fires).
+* **Trends:** 7/30/90-day AQI & PM2.5/PM10/NO₂/O₃ with compare + CSV/PNG export.
+* **Forecast:** 24/48/72h charts with tooltips; short AI summary.
+* **Health:** switch WHO/CPCB breakpoints; AI advice (“Explain this”).
+* **Alerts:** set thresholds; push notifications on exceedance.
+
+## Serverless Functions (Netlify `/netlify/functions`)
+
+* `realtime.ts` → **OpenAQ** measurements (fallback WAQI if token present).
+* `forecast.ts` → **Open-Meteo Air Quality** + weather.
+* `satelliteTiles.ts` → **NASA GIBS** WMTS metadata/overlay.
+* `geocode.ts` → **Open-Meteo Geocoding** (free) for place → lat/lon.
+* `aiHealth.ts` → **OpenRouter** chat completions (health tips, summaries).
+* `alertsCron.ts` (Scheduled) → evaluate saved thresholds → Web Push/FCM.
+
+## Free APIs (implement adapters; toggle per availability)
+
+* **OpenAQ** (no key), **Open-Meteo Air Quality & Geocoding** (no key), **NASA GIBS** (tiles), **Meteostat** (historical weather), **WAQI** (free token optional). Keep all calls server-side via functions.
+
+## Env Vars (Netlify)
+
+`OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `mistralai/mistral-7b-instruct:free`), `SITE_TITLE`, `PUBLIC_BASE_URL`, `WAQI_TOKEN` (opt), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (or FCM keys).
+
+## Implementation Notes
+
+* Breakpoint tables (WHO & CPCB) + color scale; unified data schema; strong error states.
+* CSP, CORS to site origin; no secrets in client bundle.
+* Tests: Vitest + RTL + MSW for API mocks.
+* README with setup, free API notes, rate limits, deploy steps.
+
+**Deliver a runnable repo meeting the above. Use only free APIs/free tiers.**
