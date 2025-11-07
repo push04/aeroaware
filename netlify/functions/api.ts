@@ -10,6 +10,7 @@ import {
   generateAIForecastSummary,
   generateAIEnhancedForecast,
 } from "../../server/lib/apiClients";
+import { calculateIndianAQI, getAQICategory, getCPCBHealthAdvice } from "../../server/lib/aqiUtils";
 import { insertUserLocationSchema, insertUserAlertSchema } from "../../shared/schema";
 
 const app = express();
@@ -35,6 +36,10 @@ app.get("/api/locations/search", async (req, res) => {
 });
 
 app.get("/api/air-quality/realtime", async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
   try {
     const { lat, lon } = req.query;
     if (!lat || !lon) {
@@ -47,59 +52,99 @@ app.get("/api/air-quality/realtime", async (req, res) => {
     const data = await fetchOpenAQData(latitude, longitude);
     
     if (!data || data.length === 0) {
-      return res.json({
-        aqi: 85,
-        pollutants: {
-          pm25: 35.6,
-          pm10: 58.2,
-          no2: 42.1,
-          o3: 68.5,
-        },
-        source: 'fallback',
+      return res.status(503).json({ 
+        error: 'Air quality data temporarily unavailable for this location',
+        apiStatus: 'unavailable'
       });
     }
     
     const measurements: any = {};
+    let usAqiFromApi: number | null = null;
+    
     data.forEach((location: any) => {
       if (location.latest && Array.isArray(location.latest)) {
         location.latest.forEach((measurement: any) => {
-          const paramName = measurement.parameter?.name?.toLowerCase() || '';
-          const paramDisplayName = measurement.parameter?.displayName?.toLowerCase() || '';
+          const paramName = (measurement.parameter?.name || '').toLowerCase();
           
-          if (paramName === 'pm25' || paramDisplayName.includes('pm2.5') || paramName.includes('pm2')) {
-            measurements.pm25 = measurements.pm25 || measurement.value;
-          } else if (paramName === 'pm10' || paramDisplayName.includes('pm10')) {
-            measurements.pm10 = measurements.pm10 || measurement.value;
-          } else if (paramName === 'no2' || paramDisplayName.includes('no2') || paramDisplayName.includes('nitrogen')) {
-            measurements.no2 = measurements.no2 || measurement.value;
-          } else if (paramName === 'o3' || paramDisplayName.includes('o3') || paramDisplayName.includes('ozone')) {
-            measurements.o3 = measurements.o3 || measurement.value;
+          if (paramName === 'pm25' || paramName === 'pm2_5' || paramName === 'pm2.5') {
+            if (measurements.pm25 === undefined && measurement.value != null) {
+              measurements.pm25 = measurement.value;
+            }
+          } else if (paramName === 'pm10') {
+            if (measurements.pm10 === undefined && measurement.value != null) {
+              measurements.pm10 = measurement.value;
+            }
+          } else if (paramName === 'no2') {
+            if (measurements.no2 === undefined && measurement.value != null) {
+              measurements.no2 = measurement.value;
+            }
+          } else if (paramName === 'o3') {
+            if (measurements.o3 === undefined && measurement.value != null) {
+              measurements.o3 = measurement.value;
+            }
+          } else if (paramName === 'so2') {
+            if (measurements.so2 === undefined && measurement.value != null) {
+              measurements.so2 = measurement.value;
+            }
+          } else if (paramName === 'co') {
+            if (measurements.co === undefined && measurement.value != null) {
+              measurements.co = measurement.value;
+            }
+          } else if (paramName === 'us_aqi') {
+            if (usAqiFromApi === null && measurement.value != null) {
+              usAqiFromApi = measurement.value;
+            }
           }
         });
       }
     });
     
-    const pm25 = measurements.pm25 || 35;
-    const aqi = Math.round(pm25 * 2.5);
+    const pm25 = measurements.pm25 ?? 0;
+    const usAqi = usAqiFromApi ?? Math.round(pm25 * 2.5);
+    
+    const indianAqi = calculateIndianAQI({
+      pm25: measurements.pm25,
+      pm10: measurements.pm10,
+      no2: measurements.no2,
+      o3: measurements.o3,
+    });
+    
+    const aqiInfo = getAQICategory(indianAqi);
     
     res.json({
-      aqi,
+      aqi: indianAqi,
+      usAqi: usAqi,
+      category: aqiInfo.category,
+      color: aqiInfo.color,
+      healthImplications: aqiInfo.healthImplications,
+      healthAdvice: getCPCBHealthAdvice(indianAqi),
       pollutants: {
-        pm25: measurements.pm25 || 35.6,
-        pm10: measurements.pm10 || 58.2,
-        no2: measurements.no2 || 42.1,
-        o3: measurements.o3 || 68.5,
+        pm25: measurements.pm25 ?? 0,
+        pm10: measurements.pm10 ?? 0,
+        no2: measurements.no2 ?? 0,
+        o3: measurements.o3 ?? 0,
+        so2: measurements.so2 ?? 0,
+        co: measurements.co ?? 0,
       },
-      source: data.length > 0 ? 'openaq' : 'fallback',
-      location: data[0]?.name || 'Unknown',
+      source: 'open-meteo',
+      location: `${latitude.toFixed(4)}°, ${longitude.toFixed(4)}°`,
+      lastUpdated: new Date().toISOString(),
+      apiStatus: 'healthy'
     });
   } catch (error) {
     console.error('Real-time air quality error:', error);
-    res.status(500).json({ error: 'Failed to fetch air quality data' });
+    res.status(500).json({ 
+      error: 'Failed to fetch air quality data',
+      apiStatus: 'error'
+    });
   }
 });
 
 app.get("/api/air-quality/forecast", async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
   try {
     const { lat, lon } = req.query;
     if (!lat || !lon) {
@@ -112,25 +157,34 @@ app.get("/api/air-quality/forecast", async (req, res) => {
     const forecastData = await fetchAirQualityForecast(latitude, longitude);
     
     if (!forecastData) {
-      return res.status(500).json({ error: 'Failed to fetch forecast' });
+      return res.status(503).json({ 
+        error: 'Forecast data temporarily unavailable',
+        apiStatus: 'unavailable'
+      });
     }
     
     const hourlyData = forecastData.time.map((time: string, idx: number) => ({
       time,
-      pm25: forecastData.pm2_5?.[idx] || 0,
-      pm10: forecastData.pm10?.[idx] || 0,
-      no2: forecastData.nitrogen_dioxide?.[idx] || 0,
-      o3: forecastData.ozone?.[idx] || 0,
-      aqi: forecastData.european_aqi?.[idx] || 0,
+      pm25: forecastData.pm2_5?.[idx] ?? 0,
+      pm10: forecastData.pm10?.[idx] ?? 0,
+      no2: forecastData.nitrogen_dioxide?.[idx] ?? 0,
+      o3: forecastData.ozone?.[idx] ?? 0,
+      aqi: forecastData.european_aqi?.[idx] ?? 0,
     }));
     
     res.json({
       hourly: hourlyData,
       source: 'open-meteo',
+      location: `${latitude.toFixed(4)}°, ${longitude.toFixed(4)}°`,
+      lastUpdated: new Date().toISOString(),
+      apiStatus: 'healthy'
     });
   } catch (error) {
     console.error('Forecast error:', error);
-    res.status(500).json({ error: 'Failed to fetch forecast data' });
+    res.status(500).json({ 
+      error: 'Failed to fetch forecast data',
+      apiStatus: 'error'
+    });
   }
 });
 
